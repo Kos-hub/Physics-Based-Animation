@@ -124,7 +124,7 @@ vec3 CollisionImpulse(Particle& pobj, const glm::vec3& cubeCentre, float cubeHal
 
 	for (int i = 0; i < 3; i++)
 	{
-		if (pobj.Position()[i] >= (cubeCentre[i] + cubeHalfExtent) && pobj.Velocity()[i] > 0.0f)
+		if (pobj.Position()[i] + pobj.Scale()[i] >= (cubeCentre[i] + cubeHalfExtent) && pobj.Velocity()[i] > 0.0f)
 		{
 			surfaceNorm = vec3(0.0f);
 			surfaceNorm[i] = -1.0f;
@@ -142,7 +142,7 @@ vec3 CollisionImpulse(Particle& pobj, const glm::vec3& cubeCentre, float cubeHal
 				pobj.SetPosition(vec3(pobj.Position().x, pobj.Position().y, pobj.Position().z - pobj.Scale()[i]));
 			}
 		}
-		else if (pobj.Position()[i] <= (cubeCentre[i] - cubeHalfExtent) && pobj.Velocity()[i] < 0.0f)
+		else if (pobj.Position()[i] - pobj.Scale()[i] <= (cubeCentre[i] - cubeHalfExtent) && pobj.Velocity()[i] < 0.0f)
 		{
 			surfaceNorm = vec3(0.0f);
 			surfaceNorm[i] = 1.0f;
@@ -164,7 +164,6 @@ vec3 CollisionImpulse(Particle& pobj, const glm::vec3& cubeCentre, float cubeHal
 	
 	impulse = -(1.0f + coefficientOfRestitution) * pobj.Mass() * glm::dot(pobj.Velocity(), surfaceNorm) * surfaceNorm;
 	return impulse;
-	//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 }
 
 #pragma endregion
@@ -173,32 +172,23 @@ vec3 CollisionImpulse(Particle& pobj, const glm::vec3& cubeCentre, float cubeHal
 
 void PhysicsEngine::Task1Init(Camera& camera, MeshDb& meshDb, ShaderDb& shaderDb)
 {
-	// Get a few meshes / shaders from the databases
-	auto defaultShader = shaderDb.Get("default");
-	auto particleMesh = meshDb.Get("tetra");
-
-
-	meshDb.Add("cube", Mesh(MeshDataFromWavefrontObj("resources/models/cube.obj")));
-	meshDb.Add("sphere", Mesh(MeshDataFromWavefrontObj("resources/models/sphere.obj")));
-	meshDb.Add("cone", Mesh(MeshDataFromWavefrontObj("resources/models/cone.obj")));
-
 	auto groundMesh = meshDb.Get("cube");
 	auto mesh = meshDb.Get("sphere");
 
 
 	// Initialise ground
 	ground.SetMesh(groundMesh);
-	ground.SetShader(defaultShader);
+	ground.SetShader(shaderDb.Get("default"));
 	ground.SetScale(vec3(2.0f));
 
 	// Initialise particle
 	particleSymp.SetMesh(mesh);
-	particleSymp.SetShader(defaultShader);
+	particleSymp.SetShader(shaderDb.Get("default"));
 	particleSymp.SetColor(vec4(1, 0, 0, 1));
 	particleSymp.SetPosition(vec3(0.0f, 0.0f, 0.0f));
 	particleSymp.SetScale(vec3(0.1f));
 
-	particleSymp.SetVelocity(vec3(1.0f, 2.0f, 2.0f));
+	particleSymp.SetVelocity(vec3(0.0f, 0.0f, 0.0f));
 
 	camera = Camera(vec3(0, 0, 1.8));
 
@@ -206,29 +196,20 @@ void PhysicsEngine::Task1Init(Camera& camera, MeshDb& meshDb, ShaderDb& shaderDb
 
 void PhysicsEngine::Task2Init(Camera& camera, MeshDb& meshDb, ShaderDb& shaderDb)
 {
-	// Get a few meshes / shaders from the databases
-	auto defaultShader = shaderDb.Get("default");
-	auto particleMesh = meshDb.Get("tetra");
-
-
-	meshDb.Add("cube", Mesh(MeshDataFromWavefrontObj("resources/models/cube.obj")));
-	meshDb.Add("sphere", Mesh(MeshDataFromWavefrontObj("resources/models/sphere.obj")));
-	meshDb.Add("cone", Mesh(MeshDataFromWavefrontObj("resources/models/cone.obj")));
-
 	auto groundMesh = meshDb.Get("cube");
 	auto mesh = meshDb.Get("sphere");
 
 
 	// Initialise ground
 	ground.SetMesh(groundMesh);
-	ground.SetShader(defaultShader);
+	ground.SetShader(shaderDb.Get("default"));
 	ground.SetScale(vec3(2.0f));
 
 	// Initialise particles
 
 	// Simple particle (stands still)
 	simpleParticle.SetMesh(mesh);
-	simpleParticle.SetShader(defaultShader);
+	simpleParticle.SetShader(shaderDb.Get("default"));
 	simpleParticle.SetColor(vec4(1, 1, 1, 1));
 	simpleParticle.SetPosition(vec3(-0.5f, 0.0f, 0.0f));
 	simpleParticle.SetScale(vec3(0.1f));
@@ -237,7 +218,7 @@ void PhysicsEngine::Task2Init(Camera& camera, MeshDb& meshDb, ShaderDb& shaderDb
 
 	// Symplectic particle
 	particleSymp.SetMesh(mesh);
-	particleSymp.SetShader(defaultShader);
+	particleSymp.SetShader(shaderDb.Get("default"));
 	particleSymp.SetColor(vec4(1, 0, 0, 1));
 	particleSymp.SetPosition(vec3(0.0f, 0.0f, 0.0f));
 	particleSymp.SetScale(vec3(0.1f));
@@ -247,7 +228,7 @@ void PhysicsEngine::Task2Init(Camera& camera, MeshDb& meshDb, ShaderDb& shaderDb
 
 	// Explicit particle
 	particleFwd.SetMesh(mesh);
-	particleFwd.SetShader(defaultShader);
+	particleFwd.SetShader(shaderDb.Get("default"));
 	particleFwd.SetColor(vec4(0, 1, 0, 1));
 	particleFwd.SetPosition(vec3(0.5f, 0.0f, 0.0f));
 	particleFwd.SetScale(vec3(0.1f));
@@ -257,7 +238,7 @@ void PhysicsEngine::Task2Init(Camera& camera, MeshDb& meshDb, ShaderDb& shaderDb
 
 	// Verlet particle
 	particleVerl.SetMesh(mesh);
-	particleVerl.SetShader(defaultShader);
+	particleVerl.SetShader(shaderDb.Get("default"));
 	particleVerl.SetColor(vec4(0, 0, 1, 1));
 	particleVerl.SetPosition(vec3(1.0f, 0.0f, 0.0f));
 	particleVerl.SetScale(vec3(0.1f));
@@ -269,14 +250,6 @@ void PhysicsEngine::Task2Init(Camera& camera, MeshDb& meshDb, ShaderDb& shaderDb
 
 void PhysicsEngine::Task3Init(Camera& camera, MeshDb& meshDb, ShaderDb& shaderDb)
 {
-	// Get a few meshes / shaders from the databases
-	auto defaultShader = shaderDb.Get("default");
-	auto particleMesh = meshDb.Get("tetra");
-
-
-	meshDb.Add("cube", Mesh(MeshDataFromWavefrontObj("resources/models/cube.obj")));
-	meshDb.Add("sphere", Mesh(MeshDataFromWavefrontObj("resources/models/sphere.obj")));
-	meshDb.Add("cone", Mesh(MeshDataFromWavefrontObj("resources/models/cone.obj")));
 
 	auto groundMesh = meshDb.Get("cube");
 	auto mesh = meshDb.Get("sphere");
@@ -284,11 +257,11 @@ void PhysicsEngine::Task3Init(Camera& camera, MeshDb& meshDb, ShaderDb& shaderDb
 
 	// Initialise ground
 	ground.SetMesh(groundMesh);
-	ground.SetShader(defaultShader);
+	ground.SetShader(shaderDb.Get("default"));
 	ground.SetScale(vec3(2.0f));
 
 	blowDryer.SetMesh(blowDryerMesh);
-	blowDryer.SetShader(defaultShader);
+	blowDryer.SetShader(shaderDb.Get("default"));
 	blowDryer.SetScale(vec3(2.0f));
 	blowDryer.SetColor(vec4(0.0f, 0.0f, 0.0f, 0.8f));
 	blowDryer.SetPosition(vec3(0.0f, -0.5f, 0.0f));
@@ -296,7 +269,7 @@ void PhysicsEngine::Task3Init(Camera& camera, MeshDb& meshDb, ShaderDb& shaderDb
 
 	// Initialise particle
 	particleSymp.SetMesh(mesh);
-	particleSymp.SetShader(defaultShader);
+	particleSymp.SetShader(shaderDb.Get("default"));
 	particleSymp.SetColor(vec4(1, 0, 0, 1));
 	particleSymp.SetPosition(vec3(0.5f, -1.0f, 0.0f));
 	particleSymp.SetScale(vec3(0.1f));
@@ -481,6 +454,11 @@ void PhysicsEngine::Init(Camera& camera, MeshDb& meshDb, ShaderDb& shaderDb)
 	tempCamera = camera;
 	tempMeshDb = meshDb;
 	tempShaderDb = shaderDb;
+
+	// Get a few meshes / shaders from the databases
+	meshDb.Add("cube", Mesh(MeshDataFromWavefrontObj("resources/models/cube.obj")));
+	meshDb.Add("sphere", Mesh(MeshDataFromWavefrontObj("resources/models/ball.obj")));
+	meshDb.Add("cone", Mesh(MeshDataFromWavefrontObj("resources/models/cone.obj")));
 
 	switch (currentTask)
 	{

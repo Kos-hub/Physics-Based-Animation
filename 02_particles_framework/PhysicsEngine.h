@@ -30,7 +30,7 @@ public:
 private:
 
 	PhysicsBody ground;
-	PhysicsBody blowDryer;
+	Particle blowDryer;
 	Particle simpleParticle;
 	Particle particleSymp;
 	Particle particleFwd;
