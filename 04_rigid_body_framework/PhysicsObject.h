@@ -142,12 +142,12 @@ class RigidBody : public Particle
 public:
 	
 	void SetAngularVelocity(const glm::vec3& angVel) { m_angularVelocity = angVel; }
-	//void SetAngularAcceleration(const glm::vec3& angAccel) { m_angularAcceleration = angAccel; }
+	void SetAngularAcceleration(const glm::vec3& angAccel) { m_angularAcceleration = angAccel; }
 
 	const glm::vec3& AngularVelocity() const { return m_angularVelocity; }
-	//const glm::vec3& AngularAcceleration() const { return m_angularAcceleration; }
+	const glm::vec3& AngularAcceleration() const { return m_angularAcceleration; }
 	glm::mat3 InverseInertia();
 private:
 	glm::vec3 m_angularVelocity = glm::vec3(0.0f);
-	//glm::vec3 m_angularAcceleration = glm::vec3(0.0f);
+	glm::vec3 m_angularAcceleration = glm::vec3(0.0f);
 };
