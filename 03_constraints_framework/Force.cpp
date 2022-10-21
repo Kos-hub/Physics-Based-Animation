@@ -6,6 +6,8 @@ using namespace glm;
 const float AIR_DENSITY = 1.225f;
 const float DRAG_COEFF = 0.47f;
 const float kS = 1.0f;
+
+
 void Force::Gravity(Particle& p)
 {
 	auto force = vec3(0, -9.81, 0) * p.Mass();
@@ -50,4 +52,57 @@ void Force::Hooke(Particle& p1, Particle& p2, float restLength, float ks, float 
 
 	p1.ApplyForce(fsd1 * unitVector1);
 	p2.ApplyForce(fsd2 * unitVector2);
+}
+
+void Force::BlowDryerForce(Particle& p, float cone_z_base, float cone_z_tip, float cone_r_base, float max_force = 100)
+{
+	vec3 force = { 0,0,0 };
+
+	// We assume that the blow dryer has the center EXACLY on (0.0f, y, 0.0f). The height of the blow dryer can change but the x and the z can't
+
+	// Height to radius = r/h = 1/2
+
+	// Find point on Vertical Axis of particle
+	vec3 pointOnVertAxis = vec3(0.0f, -0.5f, p.Position().z);
+
+	// Calculate relative height between the point on the vertical axis and the tip 
+	float relativeHeight = glm::distance(pointOnVertAxis, vec3(0.0f, -0.5f, cone_z_tip));
+
+	// Calculate maximum radius r = h/2
+	float maxRelRadius = relativeHeight / 2;
+
+	// Calculate current radius of particle
+	float currentRadius = glm::distance(p.Position(), pointOnVertAxis);
+
+	// Comparing the height of the particle with the maximum relative radius of the particle position
+	if ((p.Position().z <= cone_z_base && p.Position().z >= cone_z_tip) && currentRadius <= maxRelRadius)
+	{
+
+		// Calculation of the angle between the tip of the cone and the particle position
+		float dotProd = dot(vec3(0.0f, -0.5f, cone_z_tip), p.Position());
+		float crossProd = length(vec3(0.0f, -0.5f, cone_z_tip)) * length(p.Position());
+
+		// We keep the cosine cause we do not need the radians for future calculations
+		float cosAngle = dotProd / crossProd;
+
+		// Height of cone
+		float height = cone_z_base - cone_z_tip;
+
+		// Scaling the force depending on how far we are on the Y axis
+		float magnitudeVerticalForce = (1 - (relativeHeight / height)) * max_force;
+
+		// Scaling the force depending on how far the radius is from the center
+		float magnitudeHorizontalForce = (1 - (currentRadius / cone_r_base)) * max_force;
+
+		// Calculating the resultant force using the angle
+		float magnitudeResultantForce = sqrt(pow(magnitudeVerticalForce, 2) + pow(magnitudeHorizontalForce, 2) -
+			2 * magnitudeHorizontalForce * magnitudeVerticalForce * cosAngle);
+
+		// Direction of the force
+		vec3 normalizedCenter = normalize(p.Position() - vec3(0.0f, -0.5f, cone_z_tip));
+
+		force = normalizedCenter * magnitudeResultantForce;
+	}
+
+	p.ApplyForce(force);
 }

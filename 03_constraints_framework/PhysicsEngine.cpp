@@ -13,14 +13,16 @@ Camera tempCamera;
 MeshDb tempMeshDb;
 ShaderDb tempShaderDb;
 
-std::vector<Particle> listOfParticles;
-
+const float SPRING_STIFFNESS = 40.0f;
+const float SPRING_DAMP = 0.5;
+const float REST_DISTANCE = 1.5;
 enum class TaskNo
 {
 	Task1,
 	Task2,
 	Task3,
-	Task4
+	Task4,
+	Task5
 };
 
 // Defaulting To Task 1
@@ -116,96 +118,86 @@ void PhysicsEngine::Init(Camera& camera, MeshDb& meshDb, ShaderDb& shaderDb)
 	case TaskNo::Task4:
 		PhysicsEngine::Task4Init(camera, meshDb, shaderDb);
 		break;
+	case TaskNo::Task5:
+		PhysicsEngine::Task5Init(camera, meshDb, shaderDb);
+		break;
 	}
 }
+
+// This is called every frame
+void PhysicsEngine::Update(float deltaTime, float totalTime)
+{
+	switch (currentTask)
+	{
+	case TaskNo::Task1:
+		PhysicsEngine::Task1Update(deltaTime, totalTime);
+		break;
+	case TaskNo::Task2:
+		PhysicsEngine::Task2Update(deltaTime, totalTime);
+		break;
+	case TaskNo::Task3:
+		PhysicsEngine::Task3Update(deltaTime, totalTime);
+		break;
+	case TaskNo::Task4:
+		PhysicsEngine::Task4Update(deltaTime, totalTime);
+		break;
+	case TaskNo::Task5:
+		PhysicsEngine::Task5Update(deltaTime, totalTime);
+		break;
+	}
+}
+
 
 void PhysicsEngine::Task1Init(Camera& camera, MeshDb& meshDb, ShaderDb& shaderDb)
 {
 	// Get a few meshes/shaders from the databases
 	auto defaultShader = shaderDb.Get("default");
 
-	meshDb.Add("cube", Mesh(MeshDataFromWavefrontObj("resources/models/cube.obj")));
-	meshDb.Add("ball", Mesh(MeshDataFromWavefrontObj("resources/models/ball.obj")));
-	meshDb.Add("cone", Mesh(MeshDataFromWavefrontObj("resources/models/cone.obj")));
-
 	auto groundMesh = meshDb.Get("cube");
-	auto sphereMesh = meshDb.Get("ball");
+	auto sphereMesh = meshDb.Get("sphere");
 	
 	// Initialise ground
 	ground.SetMesh(groundMesh);
 	ground.SetShader(defaultShader);
 	ground.SetScale(vec3(15.0f));
 
-	anchor.SetMesh(sphereMesh);
-	anchor.SetShader(defaultShader);
-	anchor.SetColor(vec4(0, 1, 0, 1));
-	anchor.SetPosition(vec3(0.0f, 0.0f, 0.0f));
-	anchor.SetScale(vec3(0.1f));
-	anchor.SetMass(1.0f);
-	anchor.SetVelocity(vec3(0.0f));
-	anchor.SetFixed();
-	listOfParticles.push_back(anchor);
-
-	sphere1.SetMesh(sphereMesh);
-	sphere1.SetShader(defaultShader);
-	sphere1.SetColor(vec4(1, 0, 0, 1));
-	sphere1.SetPosition(vec3(0.0f, -0.1f, 0.0f));
-	sphere1.SetScale(vec3(0.1f));
-	sphere1.SetMass(1.0f);
-	sphere1.SetVelocity(vec3(0.0f));
-	listOfParticles.push_back(sphere1);
-
-	sphere2.SetMesh(sphereMesh);
-	sphere2.SetShader(defaultShader);
-	sphere2.SetColor(vec4(0, 0, 1, 1));
-	sphere2.SetPosition(vec3(0.0f, -0.2f, 0.0f));
-	sphere2.SetScale(vec3(0.1f));
-	sphere2.SetMass(1.0f);
-	sphere2.SetVelocity(vec3(0.0f));
-	listOfParticles.push_back(sphere2);
-
-	sphere3.SetMesh(sphereMesh);
-	sphere3.SetShader(defaultShader);
-	sphere3.SetColor(vec4(1, 1, 0, 1));
-	sphere3.SetPosition(vec3(0.0f, -0.3f, 0.0f));
-	sphere3.SetScale(vec3(0.1f));
-	sphere3.SetMass(1.0f);
-	sphere3.SetVelocity(vec3(0.0f));
-	listOfParticles.push_back(sphere3);
-	
-
-	sphere4.SetMesh(sphereMesh);
-	sphere4.SetShader(defaultShader);
-	sphere4.SetColor(vec4(1, 0, 1, 1));
-	sphere4.SetPosition(vec3(0.0f, -0.4f, 0.0f));
-	sphere4.SetScale(vec3(0.1f));
-	sphere4.SetMass(1.0f);
-	sphere4.SetVelocity(vec3(0.0f));
-	listOfParticles.push_back(sphere4);
-
-	camera = Camera(vec3(0, 0, 1.8));
+	for (int i = 0; i < 5; i++)
+	{
+		Particle p;
+		p.SetMesh(sphereMesh);
+		p.SetShader(defaultShader);
+		p.SetColor(vec4(1, 0, 0, 1));
+		p.SetPosition(vec3(0.0f, i * -0.1, 0.0f));
+		p.SetScale(vec3(0.1f));
+		p.SetMass(1.0f);
+		p.SetVelocity(vec3(0.0f));
+		if (i == 0)
+			p.SetFixed();
+		task1Particles.push_back(p);
+	}
+	camera = Camera(vec3(0, 0, 10));
 }
 
 void PhysicsEngine::Task1Update(float deltaTime, float totalTime)
 {
 	// Calculate forces, then acceleration, then integrate
-	for (int i = 0; i < listOfParticles.size(); i++)
+	for (int i = 0; i < task1Particles.size(); i++)
 	{
-		if (!listOfParticles[i].IsFixed())
+		if (!task1Particles[i].IsFixed())
 		{
-			listOfParticles[i].ClearForcesImpulses();
-			Force::Gravity(listOfParticles[i]);
+			task1Particles[i].ClearForcesImpulses();
+			Force::Gravity(task1Particles[i]);
 
-			for(int j = 1; j < listOfParticles.size(); j++)
-				Force::Hooke(listOfParticles[j], listOfParticles[j-1], 0.5f, 20.0f, 0.2f);
+			for(int j = 1; j < task1Particles.size(); j++)
+				Force::Hooke(task1Particles[j], task1Particles[j-1], 0.5f, SPRING_STIFFNESS, SPRING_DAMP);
 
-			Force::Drag(listOfParticles[i]);
-			vec3 acceleration = listOfParticles[i].AccumulatedForce() / listOfParticles[i].Mass();
+			Force::Drag(task1Particles[i]);
+			vec3 acceleration = task1Particles[i].AccumulatedForce() / task1Particles[i].Mass();
 
-			vec3 p = listOfParticles[i].Position(), v = listOfParticles[i].Velocity();
-			SymplecticEuler(p, v, listOfParticles[i].Mass(), acceleration, vec3(0.0f), deltaTime);
-			listOfParticles[i].SetPosition(p);
-			listOfParticles[i].SetVelocity(v);
+			vec3 p = task1Particles[i].Position(), v = task1Particles[i].Velocity();
+			SymplecticEuler(p, v, task1Particles[i].Mass(), acceleration, vec3(0.0f), deltaTime);
+			task1Particles[i].SetPosition(p);
+			task1Particles[i].SetVelocity(v);
 		}
 
 
@@ -218,12 +210,8 @@ void PhysicsEngine::Task2Init(Camera& camera, MeshDb& meshDb, ShaderDb& shaderDb
 	// Get a few meshes/shaders from the databases
 	auto defaultShader = shaderDb.Get("default");
 
-	meshDb.Add("cube", Mesh(MeshDataFromWavefrontObj("resources/models/cube.obj")));
-	meshDb.Add("ball", Mesh(MeshDataFromWavefrontObj("resources/models/ball.obj")));
-	meshDb.Add("cone", Mesh(MeshDataFromWavefrontObj("resources/models/cone.obj")));
-
 	auto groundMesh = meshDb.Get("cube");
-	auto sphereMesh = meshDb.Get("ball");
+	auto sphereMesh = meshDb.Get("sphere");
 
 	// Initialise ground
 	ground.SetMesh(groundMesh);
@@ -235,7 +223,7 @@ void PhysicsEngine::Task2Init(Camera& camera, MeshDb& meshDb, ShaderDb& shaderDb
 		Particle p;
 		p.SetMesh(sphereMesh);
 		p.SetShader(defaultShader);
-		p.SetColor(vec4(rand() % 2, rand() % 2, rand() % 2, 1));
+		p.SetColor(vec4(0, 1, 0, 1));
 		p.SetPosition(vec3(10.0f - i, 0.0f, 0.0f));
 		p.SetScale(vec3(0.1f));
 		p.SetMass(1.0f);
@@ -245,7 +233,7 @@ void PhysicsEngine::Task2Init(Camera& camera, MeshDb& meshDb, ShaderDb& shaderDb
 		task2Particles.push_back(p);
 
 	}
-	camera = Camera(vec3(0, 0, 1.8));
+	camera = Camera(vec3(0, 0, 10));
 }
 
 void PhysicsEngine::Task2Update(float deltaTime, float totalTime)
@@ -258,7 +246,7 @@ void PhysicsEngine::Task2Update(float deltaTime, float totalTime)
 			Force::Gravity(task2Particles[i]);
 
 			for (int j = 1; j < task2Particles.size(); j++)
-				Force::Hooke(task2Particles[j], task2Particles[j - 1], 0.5f, 20.0f, 0.2f);
+				Force::Hooke(task2Particles[j], task2Particles[j - 1], 0.5f, SPRING_STIFFNESS, SPRING_DAMP);
 
 			Force::Drag(task2Particles[i]);
 			vec3 acceleration = task2Particles[i].AccumulatedForce() / task2Particles[i].Mass();
@@ -277,12 +265,8 @@ void PhysicsEngine::Task3Init(Camera& camera, MeshDb& meshDb, ShaderDb& shaderDb
 	// Get a few meshes/shaders from the databases
 	auto defaultShader = shaderDb.Get("default");
 
-	meshDb.Add("cube", Mesh(MeshDataFromWavefrontObj("resources/models/cube.obj")));
-	meshDb.Add("ball", Mesh(MeshDataFromWavefrontObj("resources/models/ball.obj")));
-	meshDb.Add("cone", Mesh(MeshDataFromWavefrontObj("resources/models/cone.obj")));
-
 	auto groundMesh = meshDb.Get("cube");
-	auto sphereMesh = meshDb.Get("ball");
+	auto sphereMesh = meshDb.Get("sphere");
 
 	// Initialise ground
 	ground.SetMesh(groundMesh);
@@ -294,7 +278,7 @@ void PhysicsEngine::Task3Init(Camera& camera, MeshDb& meshDb, ShaderDb& shaderDb
 		Particle p;
 		p.SetMesh(sphereMesh);
 		p.SetShader(defaultShader);
-		p.SetColor(vec4(rand() % 2, rand() % 2, rand() % 2, 1));
+		p.SetColor(vec4(0, 0, 1, 1));
 		p.SetPosition(vec3(10.0f - i, -10.0f, 0.0f));
 		p.SetScale(vec3(0.1f));
 		p.SetMass(1.0f);
@@ -304,7 +288,7 @@ void PhysicsEngine::Task3Init(Camera& camera, MeshDb& meshDb, ShaderDb& shaderDb
 		task3Particles.push_back(p);
 
 	}
-	camera = Camera(vec3(0, 0, 1.8));
+	camera = Camera(vec3(0, 0, 10));
 }
 
 void PhysicsEngine::Task3Update(float deltaTime, float totalTime)
@@ -320,7 +304,7 @@ void PhysicsEngine::Task3Update(float deltaTime, float totalTime)
 			Force::Gravity(task3Particles[i]);
 
 			for (int j = 1; j < task3Particles.size(); j++)
-				Force::Hooke(task3Particles[j], task3Particles[j - 1], 0.5f, 20.0f, 0.2f);
+				Force::Hooke(task3Particles[j], task3Particles[j - 1], 0.5f, SPRING_STIFFNESS, SPRING_DAMP);
 
 			Force::Drag(task3Particles[i]);
 			vec3 acceleration = task3Particles[i].AccumulatedForce() / task3Particles[i].Mass();
@@ -339,12 +323,8 @@ void PhysicsEngine::Task4Init(Camera& camera, MeshDb& meshDb, ShaderDb& shaderDb
 	// Get a few meshes/shaders from the databases
 	auto defaultShader = shaderDb.Get("default");
 
-	meshDb.Add("cube", Mesh(MeshDataFromWavefrontObj("resources/models/cube.obj")));
-	meshDb.Add("ball", Mesh(MeshDataFromWavefrontObj("resources/models/ball.obj")));
-	meshDb.Add("cone", Mesh(MeshDataFromWavefrontObj("resources/models/cone.obj")));
-
 	auto groundMesh = meshDb.Get("cube");
-	auto sphereMesh = meshDb.Get("ball");
+	auto sphereMesh = meshDb.Get("sphere");
 
 	// Initialise ground
 	ground.SetMesh(groundMesh);
@@ -358,22 +338,23 @@ void PhysicsEngine::Task4Init(Camera& camera, MeshDb& meshDb, ShaderDb& shaderDb
 			Particle p;
 			p.SetMesh(sphereMesh);
 			p.SetShader(defaultShader);
-			p.SetColor(vec4(rand() % 2, rand() % 2, rand() % 2, 1));
-			p.SetPosition(vec3(10.0f - i, 0.0f, 10.0f - j));
+			p.SetColor(vec4(1, 1, 0, 1));
+			p.SetPosition(vec3(10.0f - i, -10.0f, 10.0f - j));
 			p.SetScale(vec3(0.1f));
 			p.SetMass(1.0f);
 			p.SetVelocity(vec3(0.0f));
 			if ((i == 9 && j == 9) || (i==0 && j ==9) || (i==0 && j==0) || (i==9 && j == 0))
 				p.SetFixed();
-
 			task4Particles[i][j] = p;
 		}
 	}
+
+	camera = Camera(vec3(0, 0, 10));
 }
 
 void PhysicsEngine::Task4Update(float deltaTime, float totalTime)
 {
-	float diagonalRest = glm::sqrt(pow(0.5, 2) + pow(0.5, 2));
+	float diagonalRest = glm::sqrt(pow(REST_DISTANCE, 2) + pow(REST_DISTANCE, 2));
 	for (int i = 0; i < 10; i++)
 	{
 		for (int j = 0; j < 10; j++)
@@ -382,42 +363,41 @@ void PhysicsEngine::Task4Update(float deltaTime, float totalTime)
 		}
 	}
 
-	// Horizontal hooke forces
+	// "Vertical" forces
 	for (int i = 1; i < 10; i++)
 	{
 		for (int j = 0; j < 10; j++)
 		{
-			Force::Hooke(task4Particles[j][i], task4Particles[j][i - 1], 0.5f, 40.0f, 0.5f);
-
+			Force::Hooke(task4Particles[i][j], task4Particles[i-1][j], REST_DISTANCE, SPRING_STIFFNESS, SPRING_DAMP);
 		}
 	}
 
-	// Vertical hooke forces
+	// "Horizontal" Forces
+	for (int i = 0; i < 10; i++)
+	{
+		for (int j = 1; j < 10; j++)
+		{
+			Force::Hooke(task4Particles[i][j], task4Particles[i][j - 1], REST_DISTANCE, SPRING_STIFFNESS, SPRING_DAMP);
+		}
+	}
+
+	// Positive diagonal
 	for (int i = 1; i < 10; i++)
 	{
-		for (int j = 0; j < 10; j++)
+		for (int j = 1; j < 10; j++)
 		{
-			Force::Hooke(task4Particles[i][j], task4Particles[i - 1][j], 0.5f, 40.0f, 0.5f);
+			Force::Hooke(task4Particles[i][j], task4Particles[i-1][j-1], diagonalRest, SPRING_STIFFNESS, SPRING_DAMP);
 		}
 	}
 
-	//// Positive diagonal hooke forces
-	//for (int i = 1; i < 10; i++)
-	//{
-	//	for (int j = 0; j < 9; j++)
-	//	{
-	//		Force::Hooke(task4Particles[j + 1][i], task4Particles[j + 1][i - 1], diagonalRest, 40.0f, 0.5f);
-	//	}
-	//}
-
-	//// Negative diagonal hooke forces
-	//for (int i = 1; i < 10; i++)
-	//{
-	//	for (int j = 0; j < 9; j++)
-	//	{
-	//		Force::Hooke(task4Particles[i][j+1], task4Particles[i - 1][j+1], diagonalRest, 40.0f, 0.5f);
-	//	}
-	//}
+	// Negative diagonal
+	for (int i = 0; i < 9; i++)
+	{
+		for (int j = 1; j < 10; j++)
+		{
+			Force::Hooke(task4Particles[i+1][j-1], task4Particles[i][j], diagonalRest, SPRING_STIFFNESS, 0.5f);
+		}
+	}
 
 	for (int i = 0; i < 10; i++)
 	{
@@ -426,7 +406,6 @@ void PhysicsEngine::Task4Update(float deltaTime, float totalTime)
 			if (!task4Particles[i][j].IsFixed())
 			{
 				auto impulse = CollisionImpulse(task4Particles[i][j], vec3(0.0f), 15.0f, 0.85f);
-
 				Force::Gravity(task4Particles[i][j]);
 				Force::Drag(task4Particles[i][j]);
 				
@@ -440,25 +419,125 @@ void PhysicsEngine::Task4Update(float deltaTime, float totalTime)
 		}
 	}
 }
-// This is called every frame
-void PhysicsEngine::Update(float deltaTime, float totalTime)
+
+
+void PhysicsEngine::Task5Init(Camera& camera, MeshDb& meshDb, ShaderDb& shaderDb)
 {
-	switch (currentTask)
+	// Get a few meshes/shaders from the databases
+	auto defaultShader = shaderDb.Get("default");
+
+	auto groundMesh = meshDb.Get("cube");
+	auto sphereMesh = meshDb.Get("sphere");
+	auto blowDryerMesh = meshDb.Get("cone");
+
+	// Initialise ground
+	ground.SetMesh(groundMesh);
+	ground.SetShader(defaultShader);
+	ground.SetScale(vec3(15.0f));
+
+	// Initialise blow dryer
+	blowDryer.SetMesh(blowDryerMesh);
+	blowDryer.SetShader(shaderDb.Get("default"));
+	blowDryer.SetScale(vec3(10.0f));
+	blowDryer.SetColor(vec4(0.5, 0, 0, 0.8f));
+	blowDryer.SetPosition(vec3(0.0f, -0.5f, -15.0f));
+	blowDryer.Rotate(glm::radians(-90.0f), vec3(1.0f, 0.0f, 0.0f));
+
+
+	for (int i = 0; i < 10; i++)
 	{
-	case TaskNo::Task1:
-		PhysicsEngine::Task1Update(deltaTime, totalTime);
-		break;
-	case TaskNo::Task2:
-		PhysicsEngine::Task2Update(deltaTime, totalTime);
-		break;
-	case TaskNo::Task3:
-		PhysicsEngine::Task3Update(deltaTime, totalTime);
-		break;
-	case TaskNo::Task4:
-		PhysicsEngine::Task4Update(deltaTime, totalTime);
-		break;
+		for (int j = 0; j < 10; j++)
+		{
+			Particle p;
+			p.SetMesh(sphereMesh);
+			p.SetShader(defaultShader);
+			p.SetColor(vec4(1, 0, 1, 1));
+			p.SetPosition(vec3(5.0f - j, 6.0f - i, -10.0f));
+			p.SetScale(vec3(0.1f));
+			p.SetMass(1.0f);
+			p.SetVelocity(vec3(0.0f));
+			if (i==0)
+				p.SetFixed();
+			task5Particles[i][j] = p;
+		}
 	}
+
+	camera = Camera(vec3(0, 0, 10));
 }
+void PhysicsEngine::Task5Update(float deltaTime, float totalTime) 
+{
+	float diagonalRest = glm::sqrt(pow(REST_DISTANCE, 2) + pow(REST_DISTANCE, 2));
+	for (int i = 0; i < 10; i++)
+	{
+		for (int j = 0; j < 10; j++)
+		{
+			task5Particles[i][j].ClearForcesImpulses();
+		}
+	}
+
+	// "Vertical" forces
+	for (int i = 1; i < 10; i++)
+	{
+		for (int j = 0; j < 10; j++)
+		{
+			Force::Hooke(task5Particles[i][j], task5Particles[i - 1][j], REST_DISTANCE, SPRING_STIFFNESS, SPRING_DAMP);
+		}
+	}
+
+	// "Horizontal" Forces
+	for (int i = 0; i < 10; i++)
+	{
+		for (int j = 1; j < 10; j++)
+		{
+			Force::Hooke(task5Particles[i][j], task5Particles[i][j - 1], REST_DISTANCE, SPRING_STIFFNESS, SPRING_DAMP);
+		}
+	}
+
+	// Positive diagonal
+	for (int i = 1; i < 10; i++)
+	{
+		for (int j = 1; j < 10; j++)
+		{
+			Force::Hooke(task5Particles[i][j], task5Particles[i - 1][j - 1], diagonalRest, SPRING_STIFFNESS, SPRING_DAMP);
+		}
+	}
+
+	// Negative diagonal
+	for (int i = 0; i < 9; i++)
+	{
+		for (int j = 1; j < 10; j++)
+		{
+			Force::Hooke(task5Particles[i + 1][j - 1], task5Particles[i][j], diagonalRest, SPRING_STIFFNESS, 0.5f);
+		}
+	}
+
+	for (int i = 0; i < 10; i++)
+	{
+		for (int j = 0; j < 10; j++)
+		{
+			if (!task5Particles[i][j].IsFixed())
+			{
+				auto impulse = CollisionImpulse(task5Particles[i][j], vec3(0.0f), 15.0f, 0.85f);
+
+				Force::Gravity(task5Particles[i][j]);
+				Force::Drag(task5Particles[i][j]);
+				Force::BlowDryerForce(task5Particles[i][j], blowDryer.Position().z, blowDryer.Position().z - 10.0f, 5.0f, 100.0f);
+
+				vec3 acceleration = task5Particles[i][j].AccumulatedForce() / task5Particles[i][j].Mass();
+
+				vec3 p = task5Particles[i][j].Position(), v = task5Particles[i][j].Velocity();
+				SymplecticEuler(p, v, task5Particles[i][j].Mass(), acceleration, impulse, deltaTime);
+				task5Particles[i][j].SetPosition(p);
+				task5Particles[i][j].SetVelocity(v);
+			}
+		}
+	}
+	
+	if (blowDryer.Position().z >= 25.0f)
+		blowDryer.SetPosition(vec3(0.0f, -0.5f, -15.0f));
+	blowDryer.SetPosition(vec3(blowDryer.Position().x, blowDryer.Position().y, blowDryer.Position().z + 0.1f));
+}
+
 
 // This is called every frame, after Update
 void PhysicsEngine::Display(const mat4& viewMatrix, const mat4& projMatrix)
@@ -466,7 +545,7 @@ void PhysicsEngine::Display(const mat4& viewMatrix, const mat4& projMatrix)
 	switch (currentTask)
 	{
 	case TaskNo::Task1:
-		for (Particle p : listOfParticles)
+		for (Particle p : task1Particles)
 			p.Draw(viewMatrix, projMatrix);
 
 		break;
@@ -487,6 +566,16 @@ void PhysicsEngine::Display(const mat4& viewMatrix, const mat4& projMatrix)
 			}
 		}
 		break;
+	case TaskNo::Task5:
+		for (int i = 0; i < 10; i++)
+		{
+			for (int j = 0; j < 10; j++)
+			{
+				task5Particles[i][j].Draw(viewMatrix, projMatrix);
+			}
+		}
+		blowDryer.Draw(viewMatrix, projMatrix);
+		break;
 	}
 
 	ground.Draw(viewMatrix, projMatrix);
@@ -498,24 +587,54 @@ void PhysicsEngine::HandleInputKey(int keyCode, bool pressed)
 	switch (keyCode)
 	{
 	case GLFW_KEY_1:
-		currentTask = TaskNo::Task1;
-		if (pressed)
-			PhysicsEngine::Init(tempCamera, tempMeshDb, tempShaderDb);
+
+		if (currentTask != TaskNo::Task1)
+		{
+			currentTask = TaskNo::Task1;
+
+			if (pressed)
+				PhysicsEngine::Init(tempCamera, tempMeshDb, tempShaderDb);
+		}			
 		break;
 	case GLFW_KEY_2:
-		currentTask = TaskNo::Task2;
-		if (pressed)
-			PhysicsEngine::Init(tempCamera, tempMeshDb, tempShaderDb);
+
+		if (currentTask != TaskNo::Task2)
+		{
+			currentTask = TaskNo::Task2;
+
+			if (pressed)
+				PhysicsEngine::Init(tempCamera, tempMeshDb, tempShaderDb);
+		}
 		break;
 	case GLFW_KEY_3:
-		currentTask = TaskNo::Task3;
-		if (pressed)
-			PhysicsEngine::Init(tempCamera, tempMeshDb, tempShaderDb);
+
+		if (currentTask != TaskNo::Task3)
+		{
+			currentTask = TaskNo::Task3;
+
+			if (pressed)
+				PhysicsEngine::Init(tempCamera, tempMeshDb, tempShaderDb);
+		}
 		break;
 	case GLFW_KEY_4:
-		currentTask = TaskNo::Task4;
-		if (pressed)
-			PhysicsEngine::Init(tempCamera, tempMeshDb, tempShaderDb);
+
+		if (currentTask != TaskNo::Task4)
+		{
+			currentTask = TaskNo::Task4;
+
+			if (pressed)
+				PhysicsEngine::Init(tempCamera, tempMeshDb, tempShaderDb);
+		}
+		break;
+	case GLFW_KEY_5:
+
+		if (currentTask != TaskNo::Task5)
+		{
+			currentTask = TaskNo::Task5;
+
+			if (pressed)
+				PhysicsEngine::Init(tempCamera, tempMeshDb, tempShaderDb);
+		}
 		break;
 	}
 }
