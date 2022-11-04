@@ -18,9 +18,13 @@ public:
 	void Display(const glm::mat4& viewMatrix, const glm::mat4& projMatrix);
 	void HandleInputKey(int keyCode, bool pressed);
 
-	void Task1Init();
+	void Task1Init(Camera& camera, MeshDb& meshDb, ShaderDb& shaderDb);
 	void Task1Update(float deltaTime, float totalTime); 
 	
+
+	void Task3Init(Camera& camera, MeshDb& meshDb, ShaderDb& shaderDb);
+	void Task3Update(float deltaTime, float totalTime);
+
 	// ... rest of the tasks here
 
 private:

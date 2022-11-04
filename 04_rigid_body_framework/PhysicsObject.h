@@ -61,6 +61,7 @@ public:
 	{
 		m_position = position;
 
+
 		verticesPosition.clear();
 		for (auto pos : this->GetMesh()->Data().positions.data)
 		{
@@ -78,7 +79,17 @@ public:
 
 	void SetOrientation(const glm::mat4& m) {
 		m_orientation = m;
+
+		verticesPosition.clear();
+		for (auto pos : this->GetMesh()->Data().positions.data)
+		{
+			glm::vec4 vertFour(pos, 1);
+			glm::vec3 finalPosition(this->ModelMatrix() * vertFour);
+
+			verticesPosition.push_back(finalPosition);
+		}
 	}
+
 
 	// translate mesh by a vector
 	void Translate(const glm::vec3& offset)
@@ -99,6 +110,15 @@ public:
 	void Rotate(const float angleInRads, const glm::vec3& axis)
 	{
 		m_orientation = glm::rotate(m_orientation, angleInRads, axis);
+
+		verticesPosition.clear();
+		for (auto pos : this->GetMesh()->Data().positions.data)
+		{
+			glm::vec4 vertFour(pos, 1);
+			glm::vec3 finalPosition(this->ModelMatrix() * vertFour);
+
+			verticesPosition.push_back(finalPosition);
+		}
 	}
 
 	// getModel computes the model matrix any time it is required

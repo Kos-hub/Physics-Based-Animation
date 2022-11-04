@@ -14,9 +14,25 @@
 using namespace glm;
 
 
+Camera tempCamera;
+MeshDb tempMeshDb;
+ShaderDb tempShaderDb;
+
+
 const glm::vec3 GRAVITY = glm::vec3(0, -9.81, 0);
+const float coeffOfFriction = 2.0f;
 
 std::vector<Particle> vertices;
+
+enum class TaskNo
+{
+	Task1,
+	Task2,
+	Task3,
+	Task4
+};
+
+TaskNo currentTask = TaskNo::Task1;
 
 void ExplicitEuler(vec3& pos, vec3& vel, float mass, const vec3& accel, const vec3& impulse, float dt)
 {
@@ -29,7 +45,7 @@ void ExplicitEuler(vec3& pos, vec3& vel, float mass, const vec3& accel, const ve
 
 void SymplecticEuler(vec3& pos, vec3& vel, float mass, const vec3& accel, const vec3& impulse, float dt)
 {
-	vel += accel * dt + impulse / mass;
+	vel += accel * dt;
 	pos += vel * dt;
 }
 
@@ -63,7 +79,7 @@ float CalculateImpulseRigidBody(RigidBody& rb, vec3 r, vec3 surfNorm, float coef
 	vec3 iMultRXNXR = glm::cross(iMultRXN, r);
 	float nDot = glm::dot(surfNorm, iMultRXNXR);
 	float denominator = 1 / rb.Mass() + nDot;
-
+	
 	//const float denominator = (1 / rb.Mass() + glm::dot(surfNorm,
 	//	glm::cross(rb.InverseInertia() * (glm::cross(r, surfNorm)), r)
 	//)
@@ -114,7 +130,6 @@ void TranslateWhenPenetrating(RigidBody& rb, vec3 pointOfApplication)
 }
 
 
-
 void CollisionImpulse(RigidBody& rb,vec3 cubeCentre, float cubeHalfExtent, float coefficientOfRestitution)
 {
 	std::vector<vec3> touchingPositions;
@@ -127,6 +142,8 @@ void CollisionImpulse(RigidBody& rb,vec3 cubeCentre, float cubeHalfExtent, float
 			touchingPositions.push_back(rb.GetVertices()[i]);
 		
 	}
+
+
 
 
 	vec3 pointOfApplication = vec3(0.0f);
@@ -164,6 +181,7 @@ void CollisionImpulse(RigidBody& rb,vec3 cubeCentre, float cubeHalfExtent, float
 		}
 		break;
 	case 4:
+		std::cout << "Face!" << std::endl;
 		pointOfApplication = GetPointOfContactForSide(touchingPositions);
 		break;
 
@@ -172,30 +190,90 @@ void CollisionImpulse(RigidBody& rb,vec3 cubeCentre, float cubeHalfExtent, float
 	TranslateWhenPenetrating(rb, pointOfApplication);
 
 	vec3 r = pointOfApplication - rb.Position();
-	vec3 impulse = CalculateImpulseRigidBody(rb, r, surfNorm, coefficientOfRestitution) * surfNorm;
+	std::cout << "Point of Application " << glm::to_string(pointOfApplication) << std::endl;
+	float magnitudeOfImpulse = CalculateImpulseRigidBody(rb, r, surfNorm, coefficientOfRestitution);
+	//vec3 impulse = magnitudeOfImpulse * surfNorm;
+	
 
-	vec3 angularVelocity = rb.AngularVelocity() + rb.InverseInertia() * glm::cross(r, impulse);
-	rb.SetAngularVelocity(angularVelocity);
-	rb.ApplyImpulse(impulse);
+	vec3 relativeVelocity = rb.Velocity() + glm::cross(rb.AngularVelocity(), r);
+	std::cout << "Relative velocity: " << glm::to_string(relativeVelocity) << std::endl;
+	vec3 vt = relativeVelocity - (glm::dot(relativeVelocity, surfNorm)) * surfNorm;
+	std::cout << "Vt is " << glm::to_string(glm::normalize(vt)) << std::endl;
 
+
+	vec3 jt = -coeffOfFriction * magnitudeOfImpulse * glm::normalize(vt);
+
+	std::cout << "JR = " << glm::to_string(magnitudeOfImpulse * surfNorm) << std::endl;
+	std::cout << "JT = " << glm::to_string(jt) << std::endl;
+	std::cout << std::endl;
+
+	//vec3 newVel = rb.Velocity() + (magnitudeOfImpulse / rb.Mass()) * surfNorm;
+	//rb.SetVelocity(newVel);
+
+	//vec3 newAngVel = rb.AngularVelocity() + magnitudeOfImpulse * rb.InverseInertia() * (glm::cross(r, surfNorm));
+	//rb.SetAngularVelocity(newAngVel);
+
+	//vec3 angularVelocity = rb.AngularVelocity() + rb.InverseInertia() * glm::cross(r, impulse+jt);
+	//rb.SetAngularVelocity(angularVelocity);
+	//rb.ApplyImpulse(impulse+jt);
+
+
+
+	vec3 jr = magnitudeOfImpulse * surfNorm;
+
+	rb.SetVelocity(rb.Velocity() + (jr + jt) / rb.Mass());
+	rb.SetAngularVelocity(rb.AngularVelocity() + rb.InverseInertia() * (glm::cross(r, jr + jt)));
 	std::cout << "AngularVelocity: " << glm::to_string(rb.AngularVelocity()) << std::endl;
+	std::cout << "Linear Velocity: " << glm::to_string(rb.Velocity()) << std::endl;
+	std::cout << std::endl;
 }
 
 
 // This is called once
 void PhysicsEngine::Init(Camera& camera, MeshDb& meshDb, ShaderDb& shaderDb)
 {
-	// Get a few meshes/shaders from the databases
-	auto defaultShader = shaderDb.Get("default");
-	
 
+	tempCamera = camera;
+	tempMeshDb = meshDb;
+	tempShaderDb = shaderDb;
+
+	
 	meshDb.Add("cube", Mesh(MeshDataFromWavefrontObj("resources/models/cube.obj")));
 	meshDb.Add("sphere", Mesh(MeshDataFromWavefrontObj("resources/models/sphere.obj")));
 	meshDb.Add("cone", Mesh(MeshDataFromWavefrontObj("resources/models/cone.obj")));
 
+	switch (currentTask)
+	{
+	case TaskNo::Task1:
+		PhysicsEngine::Task1Init(camera, meshDb, shaderDb);
+		break;
+	//case TaskNo::Task2:
+	//	PhysicsEngine::Task2Init(camera, meshDb, shaderDb);
+	//	break;
+	case TaskNo::Task3:
+		PhysicsEngine::Task3Init(camera, meshDb, shaderDb);
+		break;
+	//case TaskNo::Task4:
+	//	PhysicsEngine::Task4Init(camera, meshDb, shaderDb);
+	//	break;
+	//case TaskNo::Task5:
+	//	PhysicsEngine::Task5Init(camera, meshDb, shaderDb);
+	//	break;
+	}
+
+
+
+}
+
+void PhysicsEngine::Task1Init(Camera& camera, MeshDb& meshDb, ShaderDb& shaderDb)
+{
+	// Get a few meshes/shaders from the databases
+	auto defaultShader = shaderDb.Get("default");
+
 	auto rbMesh = meshDb.Get("cube");
 	auto groundMesh = meshDb.Get("plane");
 	auto sphereMesh = meshDb.Get("sphere");
+
 	// Initialise ground
 	ground.SetMesh(groundMesh);
 	ground.SetShader(defaultShader);
@@ -205,45 +283,118 @@ void PhysicsEngine::Init(Camera& camera, MeshDb& meshDb, ShaderDb& shaderDb)
 	rbody1.SetMesh(rbMesh);
 	rbody1.SetShader(defaultShader);
 	rbody1.SetColor(vec4(1, 0, 0, 1));
-	rbody1.SetScale(vec3(2,6,2));
-	rbody1.SetMass(1.0f);
-	rbody1.SetVelocity(vec3(0.0f, 0.0f, 0.0f));
-	rbody1.Rotate(0.8f, vec3(1.0f, 1.0f, 0.0f));
+	rbody1.SetScale(vec3(1, 3, 1));
+	rbody1.SetMass(2.0f);
+	rbody1.SetVelocity(vec3(2.0f, 0.0f, 0.0f));
+	//rbody1.Rotate(0.8f, vec3(1.0f, 1.0f, 0.0f));
 	rbody1.SetAngularVelocity(vec3(0.0f, 0.0f, 0.0f));
 	rbody1.SetPosition(vec3(0.0f, 12.0f, 0.0f));
+	
 
+
+	std::cout << "Inverse Inertia Tensor: " << std::endl;
+	std::cout << glm::to_string(rbody1.InverseInertia()) << std::endl;
 	camera = Camera(vec3(0, 5, 10));
-
 }
-
-void PhysicsEngine::Task1Init()
-{
-	// Initialise the rigid body
-}
-
 void PhysicsEngine::Task1Update(float deltaTime, float totalTime)
-{
-
-}
-
-
-// This is called every frame
-void PhysicsEngine::Update(float deltaTime, float totalTime)
 {
 	// Calculate forces, then acceleration, then integrate
 	rbody1.ClearForcesImpulses();
 
-	CollisionImpulse(rbody1, vec3(0.0f), 0.0f, 0.0f);
+	if (totalTime == 2.0f)
+	{
+		vec3 impulse = vec3(-4.0f, 0.0f, 0.0f);
 
-	Force::Gravity(rbody1);
+		vec3 pointOfApplication = vec3(rbody1.Position().x, rbody1.Position().y - 1.0f, rbody1.Position().z);
+		rbody1.SetAngularVelocity(rbody1.AngularVelocity() + rbody1.InverseInertia() * glm::cross(pointOfApplication - rbody1.Position(), impulse));
+
+
+		rbody1.ApplyImpulse(impulse);
+	}
 	vec3 acceleration = rbody1.AccumulatedForce() / rbody1.Mass();
-	
+
 	vec3 p = rbody1.Position(), v = rbody1.Velocity();
 	SymplecticEuler(p, v, rbody1.Mass(), acceleration, rbody1.AccumulatedImpulse(), deltaTime);
 	rbody1.SetPosition(p);
 	rbody1.SetVelocity(v);
 
 	Integrate(rbody1, deltaTime);
+
+	std::cout << glm::to_string(rbody1.Position()) << std::endl;
+}
+
+
+void PhysicsEngine::Task3Init(Camera& camera, MeshDb& meshDb, ShaderDb& shaderDb) 
+{
+	// Get a few meshes/shaders from the databases
+	auto defaultShader = shaderDb.Get("default");
+
+	auto rbMesh = meshDb.Get("cube");
+	auto groundMesh = meshDb.Get("plane");
+	auto sphereMesh = meshDb.Get("sphere");
+
+	// Initialise ground
+	ground.SetMesh(groundMesh);
+	ground.SetShader(defaultShader);
+	ground.SetScale(vec3(50.0f));
+
+
+	rbody1.SetMesh(rbMesh);
+	rbody1.SetShader(defaultShader);
+	rbody1.SetColor(vec4(1, 0, 0, 1));
+	rbody1.SetScale(vec3(1, 3, 1));
+	rbody1.SetMass(200.0f);
+	rbody1.SetVelocity(vec3(2.0f, 0.0f, 0.0f));
+	//rbody1.Rotate(0.8f, vec3(1.0f, 1.0f, 0.0f));
+	//rbody1.Rotate(0.8f, vec3(1.0f, 1.0f, 0.0f));
+	//rbody1.SetAngularVelocity(vec3(0.0f, 0.0f, 0.5f));
+	rbody1.SetPosition(vec3(0.0f, 3.0f, 0.0f));
+
+
+	std::cout << "Inverse Inertia Tensor: " << std::endl;
+	std::cout << glm::to_string(rbody1.InverseInertia()) << std::endl;
+	camera = Camera(vec3(0, 5, 10));
+}
+void PhysicsEngine::Task3Update(float deltaTime, float totalTime)
+{
+	rbody1.ClearForcesImpulses();
+
+	Force::Gravity(rbody1);
+	vec3 acceleration = rbody1.AccumulatedForce() / rbody1.Mass();
+
+	vec3 p = rbody1.Position(), v = rbody1.Velocity();
+	SymplecticEuler(p, v, rbody1.Mass(), acceleration, rbody1.AccumulatedImpulse(), deltaTime);
+	rbody1.SetPosition(p);
+	rbody1.SetVelocity(v);
+
+	Integrate(rbody1, deltaTime);
+
+	CollisionImpulse(rbody1, vec3(0.0f), 0.0f, 1.0f);
+
+	
+}
+
+// This is called every frame
+void PhysicsEngine::Update(float deltaTime, float totalTime)
+{
+	switch (currentTask)
+	{
+	case TaskNo::Task1:
+		PhysicsEngine::Task1Update(deltaTime, totalTime);
+		break;
+	//case TaskNo::Task2:
+	//	PhysicsEngine::Task2Update(deltaTime, totalTime);
+	//	break;
+	case TaskNo::Task3:
+		PhysicsEngine::Task3Update(deltaTime, totalTime);
+		break;
+	//case TaskNo::Task4:
+	//	PhysicsEngine::Task4Update(deltaTime, totalTime);
+	//	break;
+	//case TaskNo::Task5:
+	//	PhysicsEngine::Task5Update(deltaTime, totalTime);
+	//	break;
+	}
 
 }
 
@@ -261,9 +412,38 @@ void PhysicsEngine::HandleInputKey(int keyCode, bool pressed)
 {
 	switch (keyCode)
 	{
-		//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-		// TODO: Add any task swapping keys here
-		//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	case GLFW_KEY_1:
+		if (currentTask != TaskNo::Task1)
+		{
+			currentTask = TaskNo::Task1;
+			if (pressed)
+				PhysicsEngine::Init(tempCamera, tempMeshDb, tempShaderDb);
+		}
+		break;
+	case GLFW_KEY_2:
+		if (currentTask != TaskNo::Task2)
+		{
+			currentTask = TaskNo::Task2;
+			if (pressed)
+				PhysicsEngine::Init(tempCamera, tempMeshDb, tempShaderDb);
+		}
+		break;
+	case GLFW_KEY_3:
+		if (currentTask != TaskNo::Task3)
+		{
+			currentTask = TaskNo::Task3;
+			if (pressed)
+				PhysicsEngine::Init(tempCamera, tempMeshDb, tempShaderDb);
+		}
+		break;
+	case GLFW_KEY_4:
+		if (currentTask != TaskNo::Task4)
+		{
+			currentTask = TaskNo::Task4;
+			if (pressed)
+				PhysicsEngine::Init(tempCamera, tempMeshDb, tempShaderDb);
+		}
+		break;
 	default:
 		break;
 	}

@@ -45,6 +45,7 @@ glm::mat3 RigidBody::Inertia()
 	return this->Orientation() * glm::mat4(m_inertiaTensor) * glm::transpose(this->Orientation());
 }
 
+
 void RigidBody::SetInertiaTensor()
 {
 	glm::mat3 inertiaTensor(1.0f);
