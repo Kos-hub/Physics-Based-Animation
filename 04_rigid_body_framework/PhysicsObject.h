@@ -60,16 +60,6 @@ public:
 	void SetPosition(const glm::vec3& position)
 	{
 		m_position = position;
-
-
-		verticesPosition.clear();
-		for (auto pos : this->GetMesh()->Data().positions.data)
-		{
-			glm::vec4 vertFour(pos, 1);
-			glm::vec3 finalPosition(this->ModelMatrix() * vertFour);
-
-			verticesPosition.push_back(finalPosition);
-		}
 	}
 
 	virtual void SetScale(const glm::vec3& scale)
@@ -79,15 +69,6 @@ public:
 
 	void SetOrientation(const glm::mat4& m) {
 		m_orientation = m;
-
-		verticesPosition.clear();
-		for (auto pos : this->GetMesh()->Data().positions.data)
-		{
-			glm::vec4 vertFour(pos, 1);
-			glm::vec3 finalPosition(this->ModelMatrix() * vertFour);
-
-			verticesPosition.push_back(finalPosition);
-		}
 	}
 
 
@@ -95,15 +76,6 @@ public:
 	void Translate(const glm::vec3& offset)
 	{
 		m_position += offset;
-
-		verticesPosition.clear();
-		for (auto pos : this->GetMesh()->Data().positions.data)
-		{
-			glm::vec4 vertFour(pos, 1);
-			glm::vec3 finalPosition(this->ModelMatrix() * vertFour);
-
-			verticesPosition.push_back(finalPosition);
-		}
 	}
 
 	// rotate mesh by an axis,angle pair
@@ -111,14 +83,6 @@ public:
 	{
 		m_orientation = glm::rotate(m_orientation, angleInRads, axis);
 
-		verticesPosition.clear();
-		for (auto pos : this->GetMesh()->Data().positions.data)
-		{
-			glm::vec4 vertFour(pos, 1);
-			glm::vec3 finalPosition(this->ModelMatrix() * vertFour);
-
-			verticesPosition.push_back(finalPosition);
-		}
 	}
 
 	// getModel computes the model matrix any time it is required
@@ -130,17 +94,22 @@ public:
 	}
 
 
-
-	void AddVertexToVertices(glm::vec3 pos)
-	{
-		verticesPosition.push_back(pos);
-	}
-
 	const std::vector<glm::vec3>& GetVertices()
 	{
 		return verticesPosition;
 	}
 
+	void UpdateVertices()
+	{
+		verticesPosition.clear();
+		for (auto pos : this->GetMesh()->Data().positions.data)
+		{
+			glm::vec4 vertFour(pos, 1);
+			glm::vec3 finalPosition(this->ModelMatrix() * vertFour);
+
+			verticesPosition.push_back(finalPosition);
+		}
+	}
 
 private:
 

@@ -21,9 +21,14 @@ public:
 	void Task1Init(Camera& camera, MeshDb& meshDb, ShaderDb& shaderDb);
 	void Task1Update(float deltaTime, float totalTime); 
 	
+	void Task2Init(Camera& camera, MeshDb& meshDb, ShaderDb& shaderDb);
+	void Task2Update(float deltaTime, float totalTime);
 
 	void Task3Init(Camera& camera, MeshDb& meshDb, ShaderDb& shaderDb);
 	void Task3Update(float deltaTime, float totalTime);
+
+	void Task4Init(Camera& camera, MeshDb& meshDb, ShaderDb& shaderDb);
+	void Task4Update(float deltaTime, float totalTime);
 
 	// ... rest of the tasks here
 
@@ -33,4 +38,5 @@ private:
 
 
 	RigidBody rbody1;
+	RigidBody rbody2;
 };

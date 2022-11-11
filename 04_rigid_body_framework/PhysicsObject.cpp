@@ -49,9 +49,9 @@ glm::mat3 RigidBody::Inertia()
 void RigidBody::SetInertiaTensor()
 {
 	glm::mat3 inertiaTensor(1.0f);
-	inertiaTensor[0][0] = (1.0f / 12.0f * this->Mass()) * ((this->Scale().y * 2) * (this->Scale().y * 2) + (this->Scale().z * 2) * (this->Scale().z * 2));
-	inertiaTensor[1][1] = (1.0f / 12.0f * this->Mass()) * ((this->Scale().x * 2) * (this->Scale().x * 2) + (this->Scale().z * 2) * (this->Scale().z * 2));
-	inertiaTensor[2][2] = (1.0f / 12.0f * this->Mass()) * ((this->Scale().x * 2) * (this->Scale().x * 2) + (this->Scale().y * 2) * (this->Scale().y * 2));
+	inertiaTensor[0][0] = (1.0f / 12.0f) * this->Mass() * ((this->Scale().y * 2) * (this->Scale().y * 2) + (this->Scale().z * 2) * (this->Scale().z * 2));
+	inertiaTensor[1][1] = (1.0f / 12.0f) * this->Mass() * ((this->Scale().x * 2) * (this->Scale().x * 2) + (this->Scale().z * 2) * (this->Scale().z * 2));
+	inertiaTensor[2][2] = (1.0f / 12.0f) * this->Mass() * ((this->Scale().x * 2) * (this->Scale().x * 2) + (this->Scale().y * 2) * (this->Scale().y * 2));
 
 
 	m_inertiaTensor = inertiaTensor;
