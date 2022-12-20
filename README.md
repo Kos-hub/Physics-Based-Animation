@@ -1,5 +1,5 @@
 # Physics-Based-Animation
-These are various courseworks I done for my Physics-Based Animation module.
+These are various courseworks I done for my Physics-Based Animation module. You will need glew32.dll and glfw3.dll to run the code.
 
 ## 01_particle_animation
 Animating spheres by making them bounce on a floor.
