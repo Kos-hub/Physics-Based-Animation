@@ -102,7 +102,7 @@ void PhysicsEngine::Init(Camera& camera, MeshDb& meshDb, ShaderDb& shaderDb)
 	// Get a few meshes / shaders from the databases
 	meshDb.Add("cube", Mesh(MeshDataFromWavefrontObj("resources/models/cube.obj")));
 	meshDb.Add("sphere", Mesh(MeshDataFromWavefrontObj("resources/models/ball.obj")));
-	meshDb.Add("cone", Mesh(MeshDataFromWavefrontObj("resources/models/cone.obj")));
+	meshDb.Add("cone", Mesh(MeshDataFromWavefrontObj("C:/Users/giana/Documents/GitHub/Physics-Based-Animation/02_particles_framework/resources/models/cone.obj")));
 
 	switch (currentTask)
 	{
