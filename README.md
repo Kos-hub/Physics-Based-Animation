@@ -34,7 +34,7 @@ There are 4 different tasks, that can be seen in different scenarios by pressing
 Task 1 = Rigid body that moves along the x axis with a velocity of 2 m/s. After 2 seconds, an impulse is applied that makes the body stop and spin clockwise. <br />
 ![Alt Text](https://github.com/Kos-hub/Physics-Based-Animation/blob/master/videos/practical_4_2.gif)
 Task 2 = Detecting which vertex collides with plane. <br />
-![Alt Text](https://github.com/Kos-hub/Physics-Based-Animation/blob/master/videos/practical_4_2.gif)
+![Alt Text](https://github.com/Kos-hub/Physics-Based-Animation/blob/master/videos/practical_4_3.gif)
 Task 3 = Collision response between the body and the plane using impulse-based response. <br />
 ![Alt Text](https://github.com/Kos-hub/Physics-Based-Animation/blob/master/videos/practical_4_4.gif)
 Task 4 = Adding friction to the rigid body.
