@@ -218,7 +218,7 @@ int main(int argc, const char** argv)
 	std::vector<Object> particles;
 
 	srand(time(NULL));
-	for (int i = 0; i < 100000; i++)
+	for (int i = 0; i < 200; i++)
 	{
 		Object particle;
 		particle.SetMesh(&particleMesh);
